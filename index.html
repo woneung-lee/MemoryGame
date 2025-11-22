@@ -714,10 +714,10 @@
             <h1>🎵 메모리 게임 🎮</h1>
             <p style="font-size: 1.2em; color: #636e72; margin-bottom: 30px;">역할을 선택해주세요</p>
             <div class="role-buttons">
-                <button class="role-btn teacher" onclick="showTeacherLogin()">
+                <button class="role-btn teacher" id="teacherRoleBtn">
                     👩‍🏫<br>선생님
                 </button>
-                <button class="role-btn student" onclick="showStudentLogin()">
+                <button class="role-btn student" id="studentRoleBtn">
                     👨‍🎓<br>학생
                 </button>
             </div>
@@ -730,8 +730,8 @@
                 <label>🔐 비밀번호</label>
                 <input type="password" id="teacherPassword" placeholder="비밀번호를 입력하세요">
             </div>
-            <button class="btn" onclick="loginTeacher()">🚀 로그인</button>
-            <button class="btn btn-back" onclick="backToRoleSelection()">← 뒤로가기</button>
+            <button class="btn" id="teacherLoginBtn">🚀 로그인</button>
+            <button class="btn btn-back" id="teacherBackBtn">← 뒤로가기</button>
         </div>
 
         <!-- 학생 로그인 화면 -->
@@ -745,8 +745,8 @@
                 <label>✨ 닉네임</label>
                 <input type="text" id="nicknameInput" placeholder="닉네임을 입력하세요">
             </div>
-            <button class="btn" onclick="joinGame()">🚀 게임 참가</button>
-            <button class="btn btn-back" onclick="backToRoleSelection()">← 뒤로가기</button>
+            <button class="btn" id="studentJoinBtn">🚀 게임 참가</button>
+            <button class="btn btn-back" id="studentBackBtn">← 뒤로가기</button>
         </div>
 
         <!-- 선생님 화면 -->
@@ -787,7 +787,7 @@
                     <label>정답 (텍스트 또는 이미지 URL)</label>
                     <input type="text" id="answerInput" placeholder="정답을 입력하거나 이미지 URL을 입력하세요">
                 </div>
-                <button class="btn btn-primary" onclick="addCard()">➕ 문제 추가</button>
+                <button class="btn btn-primary" id="addCardBtn">➕ 문제 추가</button>
             </div>
 
             <div class="section">
@@ -797,7 +797,7 @@
                     두 번째 열: 정답 (텍스트 또는 이미지 URL)
                 </p>
                 <div class="file-input-wrapper">
-                    <input type="file" id="excelFile" accept=".xlsx, .xls" onchange="handleExcelUpload(event)">
+                    <input type="file" id="excelFile" accept=".xlsx, .xls">
                     <label for="excelFile" class="file-input-label">📁 엑셀 파일 선택</label>
                 </div>
             </div>
@@ -809,8 +809,8 @@
 
             <div class="section">
                 <h2>🎮 게임 관리</h2>
-                <button class="btn btn-success pulse" onclick="startGame()">🚀 게임 시작</button>
-                <button class="btn btn-danger" onclick="deleteRecords()" style="margin-left: 20px;">🗑️ 기록 삭제</button>
+                <button class="btn btn-success pulse" id="startGameBtn">🚀 게임 시작</button>
+                <button class="btn btn-danger" id="deleteRecordsBtn" style="margin-left: 20px;">🗑️ 기록 삭제</button>
                 <div id="gameInstruction" style="margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #ffeaa7, #fdcb6e); border-radius: 15px; display: none;">
                     <p style="color: #2d3436; font-weight: bold; font-size: 1.1em; margin-bottom: 10px;">
                         ⏱️ 각 학생은 입장 시점부터 개인별로 제한 시간이 적용됩니다.
@@ -901,24 +901,24 @@
         let timerInterval = null;
 
         // 화면 전환 함수들
-        window.showTeacherLogin = function() {
+        function showTeacherLogin() {
             document.getElementById('roleSelection').style.display = 'none';
             document.getElementById('teacherLogin').style.display = 'block';
-        };
+        }
 
-        window.showStudentLogin = function() {
+        function showStudentLogin() {
             document.getElementById('roleSelection').style.display = 'none';
             document.getElementById('studentLogin').style.display = 'block';
-        };
+        }
 
-        window.backToRoleSelection = function() {
+        function backToRoleSelection() {
             document.getElementById('roleSelection').style.display = 'block';
             document.getElementById('teacherLogin').style.display = 'none';
             document.getElementById('studentLogin').style.display = 'none';
-        };
+        }
 
         // 선생님 로그인
-        window.loginTeacher = function() {
+        function loginTeacher() {
             const password = document.getElementById('teacherPassword').value;
             if (password === 'teacher1234') {
                 userRole = 'teacher';
@@ -928,7 +928,28 @@
             } else {
                 alert('❌ 비밀번호가 올바르지 않습니다!');
             }
-        };
+        }
+
+        // 이벤트 리스너 등록
+        document.addEventListener('DOMContentLoaded', function() {
+            // 역할 선택
+            document.getElementById('teacherRoleBtn')?.addEventListener('click', showTeacherLogin);
+            document.getElementById('studentRoleBtn')?.addEventListener('click', showStudentLogin);
+            
+            // 선생님 로그인
+            document.getElementById('teacherLoginBtn')?.addEventListener('click', loginTeacher);
+            document.getElementById('teacherBackBtn')?.addEventListener('click', backToRoleSelection);
+            
+            // 학생 로그인
+            document.getElementById('studentJoinBtn')?.addEventListener('click', joinGame);
+            document.getElementById('studentBackBtn')?.addEventListener('click', backToRoleSelection);
+            
+            // 선생님 화면
+            document.getElementById('addCardBtn')?.addEventListener('click', addCard);
+            document.getElementById('excelFile')?.addEventListener('change', handleExcelUpload);
+            document.getElementById('startGameBtn')?.addEventListener('click', startGame);
+            document.getElementById('deleteRecordsBtn')?.addEventListener('click', deleteRecords);
+        });
 
         // 4자리 게임 코드 생성
         function generateGameCode() {
@@ -1021,7 +1042,7 @@
             }
         }
 
-        window.addCard = function() {
+        function addCard() {
             const question = document.getElementById('questionInput').value.trim();
             const answer = document.getElementById('answerInput').value.trim();
 
@@ -1035,7 +1056,7 @@
 
             document.getElementById('questionInput').value = '';
             document.getElementById('answerInput').value = '';
-        };
+        }
 
         function updateCardPreview() {
             const preview = document.getElementById('cardPreview');
@@ -1043,23 +1064,31 @@
 
             preview.innerHTML = cards.map((card, index) => `
                 <div class="card-item">
-                    <button class="delete-btn" onclick="deleteCard(${index})">×</button>
+                    <button class="delete-btn" data-card-index="${index}">×</button>
                     <div style="font-weight: bold; margin-bottom: 10px; color: #ffeaa7;">문제</div>
                     ${renderCard(card.question)}
                     <div style="font-weight: bold; margin: 10px 0; color: #55efc4;">정답</div>
                     ${renderCard(card.answer)}
                 </div>
             `).join('');
+
+            // 삭제 버튼 이벤트 리스너 추가 (이벤트 위임)
+            preview.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-card-index'));
+                    deleteCard(index);
+                });
+            });
         }
 
-        window.deleteCard = function(index) {
+        function deleteCard(index) {
             if (confirm('이 카드를 삭제하시겠습니까?')) {
                 cards.splice(index, 1);
                 updateCardPreview();
             }
-        };
+        }
 
-        window.handleExcelUpload = function(event) {
+        function handleExcelUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
@@ -1084,9 +1113,9 @@
                 alert(`${jsonData.length - 1}개의 문제가 추가되었습니다!`);
             };
             reader.readAsArrayBuffer(file);
-        };
+        }
 
-        window.startGame = async function() {
+        async function startGame() {
             if (cards.length === 0) {
                 alert('최소 1개 이상의 카드를 추가해주세요!');
                 return;
@@ -1113,9 +1142,9 @@
             document.getElementById('gameInstruction').style.display = 'block';
 
             alert(`🎮 게임이 시작되었습니다!\n\n학생들에게 게임 코드를 알려주세요: ${gameCode}\n각 학생은 입장 시점부터 ${timeLimit}초 동안 게임을 진행합니다.`);
-        };
+        }
 
-        window.deleteRecords = async function() {
+        async function deleteRecords() {
             if (confirm('⚠️ 모든 학생들의 게임 기록을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) {
                 const playersRef = ref(database, `memoryGames/${gameId}/players`);
                 await remove(playersRef);
@@ -1133,10 +1162,10 @@
                 
                 alert('✅ 모든 학생 기록이 삭제되었습니다!');
             }
-        };
+        }
 
         // 학생 게임 참가
-        window.joinGame = async function() {
+        async function joinGame() {
             const code = document.getElementById('gameCodeInput').value.trim();
             const nickname = document.getElementById('nicknameInput').value.trim();
 
@@ -1182,7 +1211,7 @@
                     alert('게임을 찾을 수 없습니다. 게임 코드를 확인해주세요!');
                 }
             }, { onlyOnce: true });
-        };
+        }
 
         function startGameListener() {
             const gameRef = ref(database, `memoryGames/${gameId}`);
@@ -1232,11 +1261,19 @@
         function renderCards() {
             const grid = document.getElementById('cardsGrid');
             grid.innerHTML = gameCards.map((card, index) => `
-                <div class="card" data-index="${index}" onclick="flipCard(${index})">
+                <div class="card" data-index="${index}">
                     <div class="card-front">❓</div>
                     <div class="card-back">${renderCardContent(card.content)}</div>
                 </div>
             `).join('');
+
+            // 카드 클릭 이벤트 리스너 추가
+            grid.querySelectorAll('.card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    flipCard(index);
+                });
+            });
         }
 
         function renderCardContent(content) {
@@ -1247,7 +1284,7 @@
             }
         }
 
-        window.flipCard = function(index) {
+        function flipCard(index) {
             if (!canFlip) return;
             if (flippedCards.length >= 2) return;
             if (flippedCards.includes(index)) return;
@@ -1262,7 +1299,7 @@
                 canFlip = false;
                 setTimeout(checkMatch, 800);
             }
-        };
+        }
 
         function checkMatch() {
             const [index1, index2] = flippedCards;

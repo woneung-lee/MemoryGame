@@ -705,6 +705,28 @@
         .pulse {
             animation: pulseBtn 2s infinite;
         }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -754,7 +776,13 @@
             <div class="header">
                 <h1>🎵 메모리 게임 선생님 🎮</h1>
                 <div style="text-align: center;">
-                    <div class="game-code" id="gameCode" style="display: none;">게임 코드를 생성하려면 게임을 시작하세요</div>
+                    <div id="gameCodeSection" style="display: none; margin: 20px 0;">
+                        <div class="game-code" id="gameCode">게임 코드</div>
+                        <div style="background: linear-gradient(135deg, #55efc4, #00b894); color: white; padding: 15px 30px; border-radius: 15px; margin-top: 15px; font-size: 1.2em; font-weight: bold;">
+                            📢 학생들에게 위 코드를 알려주세요!<br>
+                            <span style="font-size: 0.9em; opacity: 0.9;">각 학생은 입장 시점부터 <span id="timeDisplay">0</span>초 동안 게임을 진행합니다.</span>
+                        </div>
+                    </div>
                     <div class="status-badge status-waiting" id="gameStatus">대기 중</div>
                 </div>
             </div>
@@ -866,22 +894,25 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, set, push, onValue, remove, update } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
-
+    
+    <!-- Firebase App (compat version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <script>
+        // Firebase 초기화
         const firebaseConfig = {
-            apiKey: "AIzaSyDSXdSiCdvsKwQo632GcJGRdeAoDS0x_Z0",
-            authDomain: "fir-input-e5ee7.firebaseapp.com",
-            databaseURL: "https://fir-input-e5ee7-default-rtdb.firebaseio.com",
-            projectId: "fir-input-e5ee7",
-            storageBucket: "fir-input-e5ee7.firebasestorage.app",
-            messagingSenderId: "1062051191420",
-            appId: "1:1062051191420:web:15fb471038f36b76bcb8ff"
+            apiKey: "AIzaSyBhmv3-IEqjRysacyazHjoc5fHaQPxrUSs",
+            authDomain: "memory-game-404c0.firebaseapp.com",
+            databaseURL: "https://memory-game-404c0-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "memory-game-404c0",
+            storageBucket: "memory-game-404c0.firebasestorage.app",
+            messagingSenderId: "255877694986",
+            appId: "1:255877694986:web:3f939340b2f30f96e5c1f3"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
         let gameId = null;
         let cards = [];
@@ -919,36 +950,72 @@
 
         // 선생님 로그인
         function loginTeacher() {
+            console.log('👩‍🏫 loginTeacher 함수 실행됨');
             const password = document.getElementById('teacherPassword').value;
+            console.log('입력된 비밀번호 길이:', password.length);
+            
             if (password === 'teacher1234') {
+                console.log('✅ 비밀번호 일치!');
                 userRole = 'teacher';
                 document.getElementById('teacherLogin').style.display = 'none';
                 document.getElementById('teacherScreen').style.display = 'block';
+                console.log('🎮 선생님 화면으로 전환');
                 createGame();
             } else {
-                alert('❌ 비밀번호가 올바르지 않습니다!');
+                console.log('❌ 비밀번호 불일치');
+                showNotification('❌ 비밀번호가 올바르지 않습니다!', 'error');
             }
         }
 
         // 이벤트 리스너 등록
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎮 DOMContentLoaded 실행됨');
+            
             // 역할 선택
-            document.getElementById('teacherRoleBtn')?.addEventListener('click', showTeacherLogin);
-            document.getElementById('studentRoleBtn')?.addEventListener('click', showStudentLogin);
+            const teacherRoleBtn = document.getElementById('teacherRoleBtn');
+            const studentRoleBtn = document.getElementById('studentRoleBtn');
+            console.log('역할 버튼:', teacherRoleBtn, studentRoleBtn);
+            
+            teacherRoleBtn?.addEventListener('click', showTeacherLogin);
+            studentRoleBtn?.addEventListener('click', showStudentLogin);
             
             // 선생님 로그인
-            document.getElementById('teacherLoginBtn')?.addEventListener('click', loginTeacher);
-            document.getElementById('teacherBackBtn')?.addEventListener('click', backToRoleSelection);
+            const teacherLoginBtn = document.getElementById('teacherLoginBtn');
+            const teacherBackBtn = document.getElementById('teacherBackBtn');
+            console.log('선생님 로그인 버튼:', teacherLoginBtn, teacherBackBtn);
+            
+            teacherLoginBtn?.addEventListener('click', loginTeacher);
+            teacherBackBtn?.addEventListener('click', backToRoleSelection);
             
             // 학생 로그인
-            document.getElementById('studentJoinBtn')?.addEventListener('click', joinGame);
-            document.getElementById('studentBackBtn')?.addEventListener('click', backToRoleSelection);
+            const studentJoinBtn = document.getElementById('studentJoinBtn');
+            const studentBackBtn = document.getElementById('studentBackBtn');
+            console.log('학생 로그인 버튼:', studentJoinBtn, studentBackBtn);
+            
+            studentJoinBtn?.addEventListener('click', joinGame);
+            studentBackBtn?.addEventListener('click', backToRoleSelection);
             
             // 선생님 화면
-            document.getElementById('addCardBtn')?.addEventListener('click', addCard);
-            document.getElementById('excelFile')?.addEventListener('change', handleExcelUpload);
-            document.getElementById('startGameBtn')?.addEventListener('click', startGame);
-            document.getElementById('deleteRecordsBtn')?.addEventListener('click', deleteRecords);
+            const addCardBtn = document.getElementById('addCardBtn');
+            const excelFile = document.getElementById('excelFile');
+            const startGameBtn = document.getElementById('startGameBtn');
+            const deleteRecordsBtn = document.getElementById('deleteRecordsBtn');
+            console.log('선생님 화면 버튼들:', {
+                addCardBtn,
+                excelFile,
+                startGameBtn,
+                deleteRecordsBtn
+            });
+            
+            addCardBtn?.addEventListener('click', addCard);
+            excelFile?.addEventListener('change', handleExcelUpload);
+            startGameBtn?.addEventListener('click', () => {
+                console.log('🚀 게임 시작 버튼 클릭됨!');
+                startGame();
+            });
+            deleteRecordsBtn?.addEventListener('click', deleteRecords);
+            
+            console.log('✅ 모든 이벤트 리스너 등록 완료');
         });
 
         // 4자리 게임 코드 생성
@@ -958,36 +1025,50 @@
 
         // 게임 생성 (선생님)
         async function createGame() {
-            const gamesRef = ref(database, 'memoryGames');
-            const newGameRef = push(gamesRef);
-            gameId = newGameRef.key;
-
-            await set(newGameRef, {
-                settings: {
-                    timeLimit: 120,
-                    comboBonus: 1,
-                    title: '메모리 게임'
-                },
-                cards: [],
-                status: 'waiting',
-                players: {},
-                startTime: null,
-                gameCode: null
-            });
+            console.log('🎲 createGame 함수 실행됨');
             
-            const gameRef = ref(database, `memoryGames/${gameId}`);
-            onValue(gameRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    updateGameStatus(data.status);
-                    updateTeacherRanking(data.players);
-                    if (data.gameCode) {
-                        gameCode = data.gameCode;
-                        document.getElementById('gameCode').textContent = `🎯 게임 코드: ${gameCode}`;
-                        document.getElementById('gameCode').style.display = 'inline-block';
+            try {
+                const gamesRef = database.ref('memoryGames');
+                const newGameRef = gamesRef.push();
+                gameId = newGameRef.key;
+                console.log('✅ 게임 ID 생성:', gameId);
+
+                await newGameRef.set({
+                    settings: {
+                        timeLimit: 120,
+                        comboBonus: 1,
+                        title: '메모리 게임'
+                    },
+                    cards: [],
+                    status: 'waiting',
+                    players: {},
+                    startTime: null,
+                    gameCode: null
+                });
+                console.log('✅ Firebase 초기 데이터 저장 성공');
+                
+                const gameRef = database.ref(`memoryGames/${gameId}`);
+                gameRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        console.log('📊 Firebase 데이터 업데이트:', data);
+                        updateGameStatus(data.status);
+                        updateTeacherRanking(data.players);
+                        if (data.gameCode) {
+                            gameCode = data.gameCode;
+                            document.getElementById('gameCode').textContent = `🎯 ${gameCode}`;
+                            document.getElementById('timeDisplay').textContent = data.settings.timeLimit;
+                            document.getElementById('gameCodeSection').style.display = 'block';
+                        }
                     }
-                }
-            });
+                });
+                console.log('✅ Firebase 리스너 등록 성공');
+                
+                showNotification('✅ 게임 방이 생성되었습니다!', 'success');
+            } catch (error) {
+                console.error('❌ createGame 오류:', error);
+                showNotification('❌ 게임 생성 중 오류가 발생했습니다: ' + error.message, 'error');
+            }
         }
 
         function updateGameStatus(status) {
@@ -1043,19 +1124,24 @@
         }
 
         function addCard() {
+            console.log('➕ addCard 함수 실행됨');
             const question = document.getElementById('questionInput').value.trim();
             const answer = document.getElementById('answerInput').value.trim();
+            console.log('입력값:', { question, answer });
 
             if (!question || !answer) {
-                alert('문제와 정답을 모두 입력해주세요!');
+                showNotification('⚠️ 문제와 정답을 모두 입력해주세요!', 'warning');
                 return;
             }
 
             cards.push({ question, answer });
+            console.log('✅ 카드 추가됨. 총 카드 수:', cards.length);
             updateCardPreview();
 
             document.getElementById('questionInput').value = '';
             document.getElementById('answerInput').value = '';
+            
+            showNotification('✅ 카드가 추가되었습니다!', 'success');
         }
 
         function updateCardPreview() {
@@ -1094,30 +1180,41 @@
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
 
-                jsonData.forEach((row, index) => {
-                    if (index === 0) return;
-                    if (row[0] && row[1]) {
-                        cards.push({
-                            question: String(row[0]).trim(),
-                            answer: String(row[1]).trim()
-                        });
-                    }
-                });
+                    let addedCount = 0;
+                    jsonData.forEach((row, index) => {
+                        if (index === 0) return;
+                        if (row[0] && row[1]) {
+                            cards.push({
+                                question: String(row[0]).trim(),
+                                answer: String(row[1]).trim()
+                            });
+                            addedCount++;
+                        }
+                    });
 
-                updateCardPreview();
-                alert(`${jsonData.length - 1}개의 문제가 추가되었습니다!`);
+                    updateCardPreview();
+                    showNotification(`✅ ${addedCount}개의 문제가 추가되었습니다!`, 'success');
+                } catch (error) {
+                    console.error('엑셀 파일 처리 오류:', error);
+                    showNotification('❌ 엑셀 파일을 읽는 중 오류가 발생했습니다.', 'error');
+                }
             };
             reader.readAsArrayBuffer(file);
         }
 
         async function startGame() {
+            console.log('🎮 startGame 함수 실행됨');
+            console.log('카드 개수:', cards.length);
+            console.log('gameId:', gameId);
+            
             if (cards.length === 0) {
-                alert('최소 1개 이상의 카드를 추가해주세요!');
+                showNotification('⚠️ 최소 1개 이상의 카드를 추가해주세요!', 'warning');
                 return;
             }
 
@@ -1125,42 +1222,102 @@
             const comboBonus = parseInt(document.getElementById('comboBonus').value);
             const gameTitle = document.getElementById('gameTitleInput').value.trim() || '메모리 게임';
 
+            console.log('게임 설정:', { timeLimit, comboBonus, gameTitle });
+
             gameCode = generateGameCode();
+            console.log('🎯 생성된 게임 코드:', gameCode);
 
-            const gameRef = ref(database, `memoryGames/${gameId}`);
-            await update(gameRef, {
-                'settings/timeLimit': timeLimit,
-                'settings/comboBonus': comboBonus,
-                'settings/title': gameTitle,
-                cards: cards,
-                status: 'playing',
-                gameCode: gameCode
-            });
+            try {
+                const gameRef = database.ref(`memoryGames/${gameId}`);
+                await gameRef.update({
+                    'settings/timeLimit': timeLimit,
+                    'settings/comboBonus': comboBonus,
+                    'settings/title': gameTitle,
+                    cards: cards,
+                    status: 'playing',
+                    gameCode: gameCode
+                });
+                console.log('✅ Firebase 업데이트 성공');
 
-            document.getElementById('gameCode').textContent = `🎯 게임 코드: ${gameCode}`;
-            document.getElementById('gameCode').style.display = 'inline-block';
-            document.getElementById('gameInstruction').style.display = 'block';
+                // 게임 코드와 안내 표시
+                document.getElementById('gameCode').textContent = `🎯 ${gameCode}`;
+                document.getElementById('timeDisplay').textContent = timeLimit;
+                document.getElementById('gameCodeSection').style.display = 'block';
+                document.getElementById('gameInstruction').style.display = 'block';
 
-            alert(`🎮 게임이 시작되었습니다!\n\n학생들에게 게임 코드를 알려주세요: ${gameCode}\n각 학생은 입장 시점부터 ${timeLimit}초 동안 게임을 진행합니다.`);
+                // 성공 알림
+                showNotification('🎮 게임이 시작되었습니다!', 'success');
+                
+                // 게임 코드 섹션을 화면 상단으로 스크롤
+                document.getElementById('gameCodeSection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } catch (error) {
+                console.error('❌ Firebase 오류:', error);
+                showNotification('❌ 게임 시작 중 오류가 발생했습니다: ' + error.message, 'error');
+            }
+        }
+
+        // 알림 토스트 표시 함수
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 20px 30px;
+                border-radius: 15px;
+                font-size: 1.2em;
+                font-weight: bold;
+                z-index: 10000;
+                animation: slideIn 0.5s ease-out;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            `;
+            
+            if (type === 'success') {
+                notification.style.background = 'linear-gradient(135deg, #55efc4, #00b894)';
+                notification.style.color = 'white';
+            } else if (type === 'error') {
+                notification.style.background = 'linear-gradient(135deg, #ff7675, #d63031)';
+                notification.style.color = 'white';
+            } else if (type === 'warning') {
+                notification.style.background = 'linear-gradient(135deg, #ffeaa7, #fdcb6e)';
+                notification.style.color = '#2d3436';
+            } else {
+                notification.style.background = 'linear-gradient(135deg, #74b9ff, #0984e3)';
+                notification.style.color = 'white';
+            }
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.5s ease-out';
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
         }
 
         async function deleteRecords() {
+            // confirm 대신 커스텀 확인 UI 사용 (간단하게 confirm 유지)
             if (confirm('⚠️ 모든 학생들의 게임 기록을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) {
-                const playersRef = ref(database, `memoryGames/${gameId}/players`);
-                await remove(playersRef);
-                
-                // 게임 상태를 대기 중으로 변경
-                const gameRef = ref(database, `memoryGames/${gameId}`);
-                await update(gameRef, {
-                    status: 'waiting',
-                    gameCode: null
-                });
+                try {
+                    const playersRef = database.ref(`memoryGames/${gameId}/players`);
+                    await playersRef.remove();
+                    
+                    // 게임 상태를 대기 중으로 변경
+                    const gameRef = database.ref(`memoryGames/${gameId}`);
+                    await gameRef.update({
+                        status: 'waiting',
+                        gameCode: null
+                    });
 
-                // 게임 코드 숨김
-                document.getElementById('gameCode').style.display = 'none';
-                document.getElementById('gameInstruction').style.display = 'none';
-                
-                alert('✅ 모든 학생 기록이 삭제되었습니다!');
+                    // 게임 코드 숨김
+                    document.getElementById('gameCodeSection').style.display = 'none';
+                    document.getElementById('gameInstruction').style.display = 'none';
+                    
+                    showNotification('✅ 모든 학생 기록이 삭제되었습니다!', 'success');
+                } catch (error) {
+                    console.error('❌ 기록 삭제 오류:', error);
+                    showNotification('❌ 기록 삭제 중 오류가 발생했습니다.', 'error');
+                }
             }
         }
 
@@ -1170,17 +1327,17 @@
             const nickname = document.getElementById('nicknameInput').value.trim();
 
             if (!code || !nickname) {
-                alert('게임 코드와 닉네임을 입력해주세요!');
+                showNotification('⚠️ 게임 코드와 닉네임을 입력해주세요!', 'warning');
                 return;
             }
 
             if (code.length !== 4 || isNaN(code)) {
-                alert('4자리 숫자 게임 코드를 입력해주세요!');
+                showNotification('⚠️ 4자리 숫자 게임 코드를 입력해주세요!', 'warning');
                 return;
             }
 
-            const gamesRef = ref(database, 'memoryGames');
-            onValue(gamesRef, (snapshot) => {
+            const gamesRef = database.ref('memoryGames');
+            gamesRef.once('value', (snapshot) => {
                 const games = snapshot.val();
                 let found = false;
 
@@ -1192,8 +1349,8 @@
                         found = true;
                         userRole = 'student';
                         
-                        const playerRef = ref(database, `memoryGames/${gameId}/players/${playerId}`);
-                        set(playerRef, {
+                        const playerRef = database.ref(`memoryGames/${gameId}/players/${playerId}`);
+                        playerRef.set({
                             name: nickname,
                             score: 0,
                             combo: 0
@@ -1208,14 +1365,14 @@
                 }
 
                 if (!found) {
-                    alert('게임을 찾을 수 없습니다. 게임 코드를 확인해주세요!');
+                    showNotification('❌ 게임을 찾을 수 없습니다. 게임 코드를 확인해주세요!', 'error');
                 }
-            }, { onlyOnce: true });
+            });
         }
 
         function startGameListener() {
-            const gameRef = ref(database, `memoryGames/${gameId}`);
-            onValue(gameRef, (snapshot) => {
+            const gameRef = database.ref(`memoryGames/${gameId}`);
+            gameRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (!data) return;
 
@@ -1333,9 +1490,8 @@
                 createConfetti();
 
                 if (matchedPairs === gameCards.length / 2) {
-                    setTimeout(() => {
-                        alert('🎉 모든 카드를 맞췄습니다!');
-                    }, 500);
+                    // 모든 카드를 맞췄을 때 - 자동으로 결과 팝업이 표시됨
+                    canFlip = false;
                 }
             } else {
                 combo = 0;
@@ -1382,8 +1538,8 @@
         function updateScore() {
             document.getElementById('scoreDisplay').textContent = `💎 ${score}점`;
             
-            const playerRef = ref(database, `memoryGames/${gameId}/players/${playerId}`);
-            update(playerRef, {
+            const playerRef = database.ref(`memoryGames/${gameId}/players/${playerId}`);
+            playerRef.update({
                 score: score,
                 combo: combo
             });
@@ -1445,8 +1601,8 @@
 
         function showGameEndPopup() {
             // Firebase에서 현재 게임 데이터 가져오기
-            const gameRef = ref(database, `memoryGames/${gameId}`);
-            onValue(gameRef, (snapshot) => {
+            const gameRef = database.ref(`memoryGames/${gameId}`);
+            gameRef.once('value', (snapshot) => {
                 const data = snapshot.val();
                 if (!data) return;
 
@@ -1475,7 +1631,7 @@
                 `;
 
                 document.getElementById('endPopup').style.display = 'flex';
-            }, { onlyOnce: true });
+            });
         }
 
         function endGameForStudent(data) {
@@ -1510,3 +1666,5 @@
     </script>
 </body>
 </html>
+
+

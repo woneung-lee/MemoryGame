@@ -482,15 +482,14 @@
 
         .cards-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
+            gap: 20px;
             margin-top: 20px;
         }
 
         .card {
             aspect-ratio: 1;
             background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 15px;
+            border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -499,6 +498,7 @@
             position: relative;
             transform-style: preserve-3d;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            min-height: 150px;
         }
 
         .card:hover {
@@ -521,7 +521,7 @@
         .card-front {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
-            font-size: 3em;
+            font-size: 5em;
         }
 
         .card-back {
@@ -531,6 +531,8 @@
             color: #2d3436;
             word-break: break-word;
             text-align: center;
+            font-size: 1.8em;
+            padding: 20px;
         }
 
         .card-back img {
@@ -798,10 +800,6 @@
                         <label>⏱️ 게임 시간 (초)</label>
                         <input type="number" id="timeLimit" value="120" min="30" max="600">
                     </div>
-                    <div class="input-group">
-                        <label>🔥 연속 정답 보너스 점수</label>
-                        <input type="number" id="comboBonus" value="1" min="0" max="10">
-                    </div>
                 </div>
             </div>
 
@@ -865,7 +863,7 @@
                     <div class="timer" id="timer">⏱️ 0:00</div>
                 </div>
                 <div>
-                    <div class="score-display" id="scoreDisplay">💎 0점</div>
+                    <div class="score-display" id="scoreDisplay">💎 0개 완성</div>
                     <div class="combo-display" id="comboDisplay">🔥 콤보 x0</div>
                 </div>
             </div>
@@ -894,11 +892,9 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <!-- Firebase App (compat version) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    
+
     <script>
         // Firebase 초기화
         const firebaseConfig = {
@@ -922,14 +918,14 @@
         // 학생 관련 변수
         let playerId = null;
         let playerName = null;
-        let score = 0;
-        let combo = 0;
         let gameCards = [];
         let flippedCards = [];
         let matchedPairs = 0;
         let canFlip = true;
-        let comboBonus = 1;
         let timerInterval = null;
+        let gameStartTime = null;
+        let completionTime = null;
+        let combo = 0;
 
         // 화면 전환 함수들
         function showTeacherLogin() {
@@ -950,72 +946,29 @@
 
         // 선생님 로그인
         function loginTeacher() {
-            console.log('👩‍🏫 loginTeacher 함수 실행됨');
             const password = document.getElementById('teacherPassword').value;
-            console.log('입력된 비밀번호 길이:', password.length);
-            
             if (password === 'teacher1234') {
-                console.log('✅ 비밀번호 일치!');
                 userRole = 'teacher';
                 document.getElementById('teacherLogin').style.display = 'none';
                 document.getElementById('teacherScreen').style.display = 'block';
-                console.log('🎮 선생님 화면으로 전환');
                 createGame();
             } else {
-                console.log('❌ 비밀번호 불일치');
                 showNotification('❌ 비밀번호가 올바르지 않습니다!', 'error');
             }
         }
 
         // 이벤트 리스너 등록
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🎮 DOMContentLoaded 실행됨');
-            
-            // 역할 선택
-            const teacherRoleBtn = document.getElementById('teacherRoleBtn');
-            const studentRoleBtn = document.getElementById('studentRoleBtn');
-            console.log('역할 버튼:', teacherRoleBtn, studentRoleBtn);
-            
-            teacherRoleBtn?.addEventListener('click', showTeacherLogin);
-            studentRoleBtn?.addEventListener('click', showStudentLogin);
-            
-            // 선생님 로그인
-            const teacherLoginBtn = document.getElementById('teacherLoginBtn');
-            const teacherBackBtn = document.getElementById('teacherBackBtn');
-            console.log('선생님 로그인 버튼:', teacherLoginBtn, teacherBackBtn);
-            
-            teacherLoginBtn?.addEventListener('click', loginTeacher);
-            teacherBackBtn?.addEventListener('click', backToRoleSelection);
-            
-            // 학생 로그인
-            const studentJoinBtn = document.getElementById('studentJoinBtn');
-            const studentBackBtn = document.getElementById('studentBackBtn');
-            console.log('학생 로그인 버튼:', studentJoinBtn, studentBackBtn);
-            
-            studentJoinBtn?.addEventListener('click', joinGame);
-            studentBackBtn?.addEventListener('click', backToRoleSelection);
-            
-            // 선생님 화면
-            const addCardBtn = document.getElementById('addCardBtn');
-            const excelFile = document.getElementById('excelFile');
-            const startGameBtn = document.getElementById('startGameBtn');
-            const deleteRecordsBtn = document.getElementById('deleteRecordsBtn');
-            console.log('선생님 화면 버튼들:', {
-                addCardBtn,
-                excelFile,
-                startGameBtn,
-                deleteRecordsBtn
-            });
-            
-            addCardBtn?.addEventListener('click', addCard);
-            excelFile?.addEventListener('change', handleExcelUpload);
-            startGameBtn?.addEventListener('click', () => {
-                console.log('🚀 게임 시작 버튼 클릭됨!');
-                startGame();
-            });
-            deleteRecordsBtn?.addEventListener('click', deleteRecords);
-            
-            console.log('✅ 모든 이벤트 리스너 등록 완료');
+            document.getElementById('teacherRoleBtn')?.addEventListener('click', showTeacherLogin);
+            document.getElementById('studentRoleBtn')?.addEventListener('click', showStudentLogin);
+            document.getElementById('teacherLoginBtn')?.addEventListener('click', loginTeacher);
+            document.getElementById('teacherBackBtn')?.addEventListener('click', backToRoleSelection);
+            document.getElementById('studentJoinBtn')?.addEventListener('click', joinGame);
+            document.getElementById('studentBackBtn')?.addEventListener('click', backToRoleSelection);
+            document.getElementById('addCardBtn')?.addEventListener('click', addCard);
+            document.getElementById('excelFile')?.addEventListener('change', handleExcelUpload);
+            document.getElementById('startGameBtn')?.addEventListener('click', startGame);
+            document.getElementById('deleteRecordsBtn')?.addEventListener('click', deleteRecords);
         });
 
         // 4자리 게임 코드 생성
@@ -1025,18 +978,14 @@
 
         // 게임 생성 (선생님)
         async function createGame() {
-            console.log('🎲 createGame 함수 실행됨');
-            
             try {
                 const gamesRef = database.ref('memoryGames');
                 const newGameRef = gamesRef.push();
                 gameId = newGameRef.key;
-                console.log('✅ 게임 ID 생성:', gameId);
 
                 await newGameRef.set({
                     settings: {
                         timeLimit: 120,
-                        comboBonus: 1,
                         title: '메모리 게임'
                     },
                     cards: [],
@@ -1045,13 +994,11 @@
                     startTime: null,
                     gameCode: null
                 });
-                console.log('✅ Firebase 초기 데이터 저장 성공');
-                
+
                 const gameRef = database.ref(`memoryGames/${gameId}`);
                 gameRef.on('value', (snapshot) => {
                     const data = snapshot.val();
                     if (data) {
-                        console.log('📊 Firebase 데이터 업데이트:', data);
                         updateGameStatus(data.status);
                         updateTeacherRanking(data.players);
                         if (data.gameCode) {
@@ -1062,11 +1009,9 @@
                         }
                     }
                 });
-                console.log('✅ Firebase 리스너 등록 성공');
-                
+
                 showNotification('✅ 게임 방이 생성되었습니다!', 'success');
             } catch (error) {
-                console.error('❌ createGame 오류:', error);
                 showNotification('❌ 게임 생성 중 오류가 발생했습니다: ' + error.message, 'error');
             }
         }
@@ -1074,7 +1019,6 @@
         function updateGameStatus(status) {
             const statusElement = document.getElementById('gameStatus');
             statusElement.className = 'status-badge';
-            
             if (status === 'waiting') {
                 statusElement.classList.add('status-waiting');
                 statusElement.textContent = '대기 중';
@@ -1093,20 +1037,29 @@
                 return;
             }
 
-            const playerArray = Object.entries(players).map(([id, data]) => ({
-                id,
-                ...data
-            }));
-
-            playerArray.sort((a, b) => b.score - a.score);
+            const playerArray = Object.entries(players).map(([id, data]) => ({ id, ...data }));
+            playerArray.sort((a, b) => {
+                if (a.completed && !b.completed) return -1;
+                if (!a.completed && b.completed) return 1;
+                if (a.completed && b.completed) return a.completionTime - b.completionTime;
+                return (b.matchedPairs || 0) - (a.matchedPairs || 0);
+            });
 
             const medals = ['🥇', '🥈', '🥉'];
-            const html = playerArray.map((player, index) => `
-                <div class="ranking-item">
-                    <span>${index < 3 ? '<span class="medal">' + medals[index] + '</span>' : (index + 1) + '.'}${player.name}</span>
-                    <span>${player.score}점 ${player.combo > 1 ? '🔥' + player.combo : ''}</span>
-                </div>
-            `).join('');
+            const html = playerArray.map((player, index) => {
+                let statusText = '';
+                if (player.completed) {
+                    const minutes = Math.floor(player.completionTime / 60);
+                    const seconds = player.completionTime % 60;
+                    statusText = `${minutes}:${seconds.toString().padStart(2, '0')} ⏱️`;
+                } else {
+                    statusText = `${player.matchedPairs || 0}개 완성`;
+                }
+                return `<div class="ranking-item">
+                    <span>${index < 3 ? '<span class="medal">' + medals[index] + '</span>' : (index + 1) + '. '}${player.name}</span>
+                    <span>${statusText}</span>
+                </div>`;
+            }).join('');
 
             document.getElementById('teacherRanking').innerHTML = html;
         }
@@ -1124,10 +1077,8 @@
         }
 
         function addCard() {
-            console.log('➕ addCard 함수 실행됨');
             const question = document.getElementById('questionInput').value.trim();
             const answer = document.getElementById('answerInput').value.trim();
-            console.log('입력값:', { question, answer });
 
             if (!question || !answer) {
                 showNotification('⚠️ 문제와 정답을 모두 입력해주세요!', 'warning');
@@ -1135,12 +1086,9 @@
             }
 
             cards.push({ question, answer });
-            console.log('✅ 카드 추가됨. 총 카드 수:', cards.length);
             updateCardPreview();
-
             document.getElementById('questionInput').value = '';
             document.getElementById('answerInput').value = '';
-            
             showNotification('✅ 카드가 추가되었습니다!', 'success');
         }
 
@@ -1158,7 +1106,6 @@
                 </div>
             `).join('');
 
-            // 삭제 버튼 이벤트 리스너 추가 (이벤트 위임)
             preview.querySelectorAll('.delete-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const index = parseInt(this.getAttribute('data-card-index'));
@@ -1201,7 +1148,6 @@
                     updateCardPreview();
                     showNotification(`✅ ${addedCount}개의 문제가 추가되었습니다!`, 'success');
                 } catch (error) {
-                    console.error('엑셀 파일 처리 오류:', error);
                     showNotification('❌ 엑셀 파일을 읽는 중 오류가 발생했습니다.', 'error');
                 }
             };
@@ -1209,54 +1155,42 @@
         }
 
         async function startGame() {
-            console.log('🎮 startGame 함수 실행됨');
-            console.log('카드 개수:', cards.length);
-            console.log('gameId:', gameId);
-            
             if (cards.length === 0) {
                 showNotification('⚠️ 최소 1개 이상의 카드를 추가해주세요!', 'warning');
                 return;
             }
 
             const timeLimit = parseInt(document.getElementById('timeLimit').value);
-            const comboBonus = parseInt(document.getElementById('comboBonus').value);
             const gameTitle = document.getElementById('gameTitleInput').value.trim() || '메모리 게임';
 
-            console.log('게임 설정:', { timeLimit, comboBonus, gameTitle });
-
             gameCode = generateGameCode();
-            console.log('🎯 생성된 게임 코드:', gameCode);
 
             try {
                 const gameRef = database.ref(`memoryGames/${gameId}`);
                 await gameRef.update({
                     'settings/timeLimit': timeLimit,
-                    'settings/comboBonus': comboBonus,
                     'settings/title': gameTitle,
                     cards: cards,
                     status: 'playing',
                     gameCode: gameCode
                 });
-                console.log('✅ Firebase 업데이트 성공');
 
-                // 게임 코드와 안내 표시
                 document.getElementById('gameCode').textContent = `🎯 ${gameCode}`;
                 document.getElementById('timeDisplay').textContent = timeLimit;
                 document.getElementById('gameCodeSection').style.display = 'block';
                 document.getElementById('gameInstruction').style.display = 'block';
 
-                // 성공 알림
                 showNotification('🎮 게임이 시작되었습니다!', 'success');
-                
-                // 게임 코드 섹션을 화면 상단으로 스크롤
-                document.getElementById('gameCodeSection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                document.getElementById('gameCodeSection').scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
             } catch (error) {
-                console.error('❌ Firebase 오류:', error);
                 showNotification('❌ 게임 시작 중 오류가 발생했습니다: ' + error.message, 'error');
             }
         }
 
-        // 알림 토스트 표시 함수
         function showNotification(message, type = 'info') {
             const notification = document.createElement('div');
             notification.textContent = message;
@@ -1272,7 +1206,7 @@
                 animation: slideIn 0.5s ease-out;
                 box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             `;
-            
+
             if (type === 'success') {
                 notification.style.background = 'linear-gradient(135deg, #55efc4, #00b894)';
                 notification.style.color = 'white';
@@ -1286,9 +1220,9 @@
                 notification.style.background = 'linear-gradient(135deg, #74b9ff, #0984e3)';
                 notification.style.color = 'white';
             }
-            
+
             document.body.appendChild(notification);
-            
+
             setTimeout(() => {
                 notification.style.animation = 'slideOut 0.5s ease-out';
                 setTimeout(() => notification.remove(), 500);
@@ -1296,26 +1230,22 @@
         }
 
         async function deleteRecords() {
-            // confirm 대신 커스텀 확인 UI 사용 (간단하게 confirm 유지)
             if (confirm('⚠️ 모든 학생들의 게임 기록을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) {
                 try {
                     const playersRef = database.ref(`memoryGames/${gameId}/players`);
                     await playersRef.remove();
-                    
-                    // 게임 상태를 대기 중으로 변경
+
                     const gameRef = database.ref(`memoryGames/${gameId}`);
                     await gameRef.update({
                         status: 'waiting',
                         gameCode: null
                     });
 
-                    // 게임 코드 숨김
                     document.getElementById('gameCodeSection').style.display = 'none';
                     document.getElementById('gameInstruction').style.display = 'none';
-                    
+
                     showNotification('✅ 모든 학생 기록이 삭제되었습니다!', 'success');
                 } catch (error) {
-                    console.error('❌ 기록 삭제 오류:', error);
                     showNotification('❌ 기록 삭제 중 오류가 발생했습니다.', 'error');
                 }
             }
@@ -1348,12 +1278,13 @@
                         playerId = Date.now().toString();
                         found = true;
                         userRole = 'student';
-                        
+
                         const playerRef = database.ref(`memoryGames/${gameId}/players/${playerId}`);
                         playerRef.set({
                             name: nickname,
-                            score: 0,
-                            combo: 0
+                            matchedPairs: 0,
+                            completed: false,
+                            completionTime: null
                         });
 
                         document.getElementById('studentLogin').style.display = 'none';
@@ -1376,8 +1307,6 @@
                 const data = snapshot.val();
                 if (!data) return;
 
-                comboBonus = data.settings.comboBonus || 1;
-
                 if (data.status === 'playing' && gameCards.length === 0) {
                     initializeGame(data);
                 } else if (data.status === 'ended') {
@@ -1396,27 +1325,31 @@
             document.getElementById('gameTitle').textContent = `🎯 ${gameTitle}`;
 
             cards.forEach((card, index) => {
-                gameCards.push({
-                    id: `q-${index}`,
-                    content: card.question,
-                    pairId: index
-                });
-                gameCards.push({
-                    id: `a-${index}`,
-                    content: card.answer,
-                    pairId: index
-                });
+                gameCards.push({ id: `q-${index}`, content: card.question, pairId: index });
+                gameCards.push({ id: `a-${index}`, content: card.answer, pairId: index });
             });
 
             gameCards.sort(() => Math.random() - 0.5);
             renderCards();
-            
-            // 개인별 타이머 시작 (입장 시점부터 제한 시간)
+
+            gameStartTime = Date.now();
             startPersonalTimer(data.settings.timeLimit);
         }
 
         function renderCards() {
             const grid = document.getElementById('cardsGrid');
+            const totalCards = gameCards.length;
+
+            let cols = Math.ceil(Math.sqrt(totalCards));
+            let rows = Math.ceil(totalCards / cols);
+
+            if (rows > cols) {
+                cols = rows;
+                rows = Math.ceil(totalCards / cols);
+            }
+
+            grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
             grid.innerHTML = gameCards.map((card, index) => `
                 <div class="card" data-index="${index}">
                     <div class="card-front">❓</div>
@@ -1424,7 +1357,6 @@
                 </div>
             `).join('');
 
-            // 카드 클릭 이벤트 리스너 추가
             grid.querySelectorAll('.card').forEach(card => {
                 card.addEventListener('click', function() {
                     const index = parseInt(this.getAttribute('data-index'));
@@ -1435,9 +1367,9 @@
 
         function renderCardContent(content) {
             if (isImageUrl(content)) {
-                return `<img src="${content}" alt="카드" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%23dfe6e9%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23636e72%22 font-size=%2212%22%3E로드 실패%3C/text%3E%3C/svg%3E'">`;
+                return `<img src="${content}" alt="카드" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%23dfe6e9%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23636e72%22 font-size=%2212%22%3E로드 실패%3C/text%3E%3C/svg%3E'">`;
             } else {
-                return content;
+                return `<div style="font-size: 1.8em; word-break: break-word; line-height: 1.3;">${content}</div>`;
             }
         }
 
@@ -1469,34 +1401,41 @@
             if (card1.pairId === card2.pairId) {
                 cardElement1.classList.add('matched');
                 cardElement2.classList.add('matched');
-                
-                score++;
-                combo++;
                 matchedPairs++;
+                combo++;
 
                 showCorrectAnimation();
+                createConfetti();
 
                 if (combo > 1) {
-                    const bonusPoints = comboBonus * (combo - 1);
-                    score += bonusPoints;
-                    showComboAnimation(combo, bonusPoints);
+                    showComboAnimation(combo);
                     document.getElementById('comboDisplay').classList.add('active');
                     document.getElementById('comboDisplay').textContent = `🔥 콤보 x${combo}`;
                 } else {
                     document.getElementById('comboDisplay').classList.remove('active');
                 }
 
-                updateScore();
-                createConfetti();
+                updateMatchedPairs();
 
                 if (matchedPairs === gameCards.length / 2) {
-                    // 모든 카드를 맞췄을 때 - 자동으로 결과 팝업이 표시됨
                     canFlip = false;
+                    completionTime = Math.floor((Date.now() - gameStartTime) / 1000);
+
+                    const playerRef = database.ref(`memoryGames/${gameId}/players/${playerId}`);
+                    playerRef.update({
+                        completed: true,
+                        completionTime: completionTime,
+                        matchedPairs: matchedPairs
+                    });
+
+                    setTimeout(() => {
+                        showCompletionPopup();
+                    }, 1000);
                 }
             } else {
                 combo = 0;
                 document.getElementById('comboDisplay').classList.remove('active');
-                
+
                 setTimeout(() => {
                     cardElement1.classList.remove('flipped');
                     cardElement2.classList.remove('flipped');
@@ -1515,10 +1454,19 @@
             setTimeout(() => emoji.remove(), 1000);
         }
 
-        function showComboAnimation(comboCount, bonusPoints) {
+        function updateMatchedPairs() {
+            document.getElementById('scoreDisplay').textContent = `💎 ${matchedPairs}개 완성`;
+
+            const playerRef = database.ref(`memoryGames/${gameId}/players/${playerId}`);
+            playerRef.update({
+                matchedPairs: matchedPairs
+            });
+        }
+
+        function showComboAnimation(comboCount) {
             const comboText = document.createElement('div');
             comboText.className = 'combo-animation';
-            comboText.textContent = `🔥 ${comboCount} COMBO! +${bonusPoints}점`;
+            comboText.textContent = `🔥 ${comboCount} COMBO!`;
             document.body.appendChild(comboText);
             setTimeout(() => comboText.remove(), 1000);
         }
@@ -1535,27 +1483,62 @@
             }
         }
 
-        function updateScore() {
-            document.getElementById('scoreDisplay').textContent = `💎 ${score}점`;
-            
-            const playerRef = database.ref(`memoryGames/${gameId}/players/${playerId}`);
-            playerRef.update({
-                score: score,
-                combo: combo
+        function showCompletionPopup() {
+            const gameRef = database.ref(`memoryGames/${gameId}`);
+            gameRef.once('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+
+                const players = data.players || {};
+                const playerArray = Object.entries(players).map(([id, data]) => ({ id, ...data }));
+
+                const completedPlayers = playerArray.filter(p => p.completed);
+                completedPlayers.sort((a, b) => a.completionTime - b.completionTime);
+
+                const myData = playerArray.find(p => p.name === playerName);
+                const myRank = completedPlayers.findIndex(p => p.name === playerName) + 1;
+
+                const minutes = Math.floor(completionTime / 60);
+                const seconds = completionTime % 60;
+
+                document.getElementById('finalScore').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                const medals = ['🥇', '🥈', '🥉'];
+                const rankInfo = myRank <= 3
+                    ? `<div style="font-size: 2em; margin: 20px 0;">${medals[myRank - 1]} ${myRank}등!</div>`
+                    : `<div style="font-size: 1.8em; margin: 20px 0; color: #6c5ce7;">${myRank}등</div>`;
+
+                const topPlayersHtml = completedPlayers.slice(0, 3).map((player, index) => {
+                    const mins = Math.floor(player.completionTime / 60);
+                    const secs = player.completionTime % 60;
+                    return `<div class="ranking-item">
+                        <span><span class="medal">${medals[index]}</span>${player.name}</span>
+                        <span>${mins}:${secs.toString().padStart(2, '0')}</span>
+                    </div>`;
+                }).join('');
+
+                document.getElementById('topPlayers').innerHTML = `
+                    <h3 style="color: #6c5ce7; font-size: 2em; margin-bottom: 10px;">🎉 완료!</h3>
+                    ${rankInfo}
+                    <h3 style="color: #6c5ce7; margin: 30px 0 15px 0;">🏆 상위 순위</h3>
+                    ${topPlayersHtml}
+                `;
+
+                document.getElementById('endPopup').style.display = 'flex';
             });
         }
 
         function startPersonalTimer(timeLimit) {
-            // 입장 시점부터 개인별 타이머 시작
             const startTime = Date.now();
             const endTime = startTime + (timeLimit * 1000);
-            
+
             timerInterval = setInterval(() => {
                 const now = Date.now();
+                const elapsed = Math.floor((now - startTime) / 1000);
                 const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
-                
-                const minutes = Math.floor(remaining / 60);
-                const seconds = remaining % 60;
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+
                 const timerElement = document.getElementById('timer');
                 timerElement.textContent = `⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}`;
 
@@ -1567,12 +1550,19 @@
 
                 if (remaining === 0) {
                     clearInterval(timerInterval);
-                    canFlip = false; // 더 이상 카드를 뒤집을 수 없도록
+                    canFlip = false;
                     timerElement.textContent = '⏱️ 시간 종료!';
-                    
-                    // 시간 종료 후 자동으로 결과 팝업 표시
+
+                    completionTime = timeLimit;
+                    const playerRef = database.ref(`memoryGames/${gameId}/players/${playerId}`);
+                    playerRef.update({
+                        completed: false,
+                        matchedPairs: matchedPairs,
+                        timeOut: true
+                    });
+
                     setTimeout(() => {
-                        showGameEndPopup();
+                        showTimeOutPopup();
                     }, 1000);
                 }
             }, 100);
@@ -1581,53 +1571,62 @@
         function updateRanking(players) {
             if (!players) return;
 
-            const playerArray = Object.entries(players).map(([id, data]) => ({
-                id,
-                ...data
-            }));
-
-            playerArray.sort((a, b) => b.score - a.score);
+            const playerArray = Object.entries(players).map(([id, data]) => ({ id, ...data }));
+            playerArray.sort((a, b) => {
+                if (a.completed && !b.completed) return -1;
+                if (!a.completed && b.completed) return 1;
+                if (a.completed && b.completed) return a.completionTime - b.completionTime;
+                return (b.matchedPairs || 0) - (a.matchedPairs || 0);
+            });
 
             const medals = ['🥇', '🥈', '🥉'];
-            const html = playerArray.map((player, index) => `
-                <div class="ranking-item" style="${player.name === playerName ? 'border: 3px solid #ffd700;' : ''}">
-                    <span>${index < 3 ? '<span class="medal">' + medals[index] + '</span>' : (index + 1) + '.'}${player.name}</span>
-                    <span>${player.score}점${player.combo > 1 ? ' 🔥' + player.combo : ''}</span>
-                </div>
-            `).join('');
+            const html = playerArray.map((player, index) => {
+                let statusText = '';
+                if (player.completed) {
+                    const minutes = Math.floor(player.completionTime / 60);
+                    const seconds = player.completionTime % 60;
+                    statusText = `${minutes}:${seconds.toString().padStart(2, '0')} ⏱️`;
+                } else {
+                    statusText = `${player.matchedPairs || 0}개 완성`;
+                }
+
+                return `<div class="ranking-item" style="${player.name === playerName ? 'border: 3px solid #ffd700;' : ''}">
+                    <span>${index < 3 ? '<span class="medal">' + medals[index] + '</span>' : (index + 1) + '. '}${player.name}</span>
+                    <span>${statusText}</span>
+                </div>`;
+            }).join('');
 
             document.getElementById('ranking').innerHTML = html;
         }
 
-        function showGameEndPopup() {
-            // Firebase에서 현재 게임 데이터 가져오기
+        function showTimeOutPopup() {
             const gameRef = database.ref(`memoryGames/${gameId}`);
             gameRef.once('value', (snapshot) => {
                 const data = snapshot.val();
                 if (!data) return;
 
                 const players = data.players || {};
-                const playerArray = Object.entries(players).map(([id, data]) => ({
-                    id,
-                    ...data
-                }));
+                const playerArray = Object.entries(players).map(([id, data]) => ({ id, ...data }));
 
-                playerArray.sort((a, b) => b.score - a.score);
+                const completedPlayers = playerArray.filter(p => p.completed);
+                completedPlayers.sort((a, b) => a.completionTime - b.completionTime);
 
-                const myData = playerArray.find(p => p.name === playerName);
-                document.getElementById('finalScore').textContent = `${myData?.score || 0}점`;
+                document.getElementById('finalScore').textContent = `${matchedPairs}/${gameCards.length / 2}개`;
 
                 const medals = ['🥇', '🥈', '🥉'];
-                const topPlayersHtml = playerArray.slice(0, 3).map((player, index) => `
-                    <div class="ranking-item">
+                const topPlayersHtml = completedPlayers.slice(0, 3).map((player, index) => {
+                    const mins = Math.floor(player.completionTime / 60);
+                    const secs = player.completionTime % 60;
+                    return `<div class="ranking-item">
                         <span><span class="medal">${medals[index]}</span>${player.name}</span>
-                        <span>${player.score}점</span>
-                    </div>
-                `).join('');
+                        <span>${mins}:${secs.toString().padStart(2, '0')}</span>
+                    </div>`;
+                }).join('');
 
                 document.getElementById('topPlayers').innerHTML = `
-                    <h3 style="color: #6c5ce7; margin-bottom: 15px;">🏆 최종 순위</h3>
-                    ${topPlayersHtml}
+                    <h3 style="color: #ff7675; font-size: 2em; margin-bottom: 10px;">⏰ 시간 종료!</h3>
+                    <div style="font-size: 1.3em; margin: 20px 0; color: #636e72;">완성한 카드</div>
+                    ${completedPlayers.length > 0 ? '<h3 style="color: #6c5ce7; margin: 30px 0 15px 0;">🏆 완료한 친구들</h3>' + topPlayersHtml : '<p style="color: #636e72; margin-top: 20px;">아직 완료한 친구가 없습니다.</p>'}
                 `;
 
                 document.getElementById('endPopup').style.display = 'flex';
@@ -1636,35 +1635,66 @@
 
         function endGameForStudent(data) {
             clearInterval(timerInterval);
-            
             const players = data.players || {};
-            const playerArray = Object.entries(players).map(([id, data]) => ({
-                id,
-                ...data
-            }));
+            const playerArray = Object.entries(players).map(([id, data]) => ({ id, ...data }));
 
-            playerArray.sort((a, b) => b.score - a.score);
+            const completedPlayers = playerArray.filter(p => p.completed);
+            completedPlayers.sort((a, b) => a.completionTime - b.completionTime);
 
             const myData = playerArray.find(p => p.name === playerName);
-            document.getElementById('finalScore').textContent = `${myData?.score || 0}점`;
 
-            const medals = ['🥇', '🥈', '🥉'];
-            const topPlayersHtml = playerArray.slice(0, 3).map((player, index) => `
-                <div class="ranking-item">
-                    <span><span class="medal">${medals[index]}</span>${player.name}</span>
-                    <span>${player.score}점</span>
-                </div>
-            `).join('');
+            if (myData && myData.completed) {
+                const myRank = completedPlayers.findIndex(p => p.name === playerName) + 1;
+                const minutes = Math.floor(myData.completionTime / 60);
+                const seconds = myData.completionTime % 60;
 
-            document.getElementById('topPlayers').innerHTML = `
-                <h3 style="color: #6c5ce7; margin-bottom: 15px;">🏆 최종 순위</h3>
-                ${topPlayersHtml}
-            `;
+                document.getElementById('finalScore').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                const medals = ['🥇', '🥈', '🥉'];
+                const rankInfo = myRank <= 3
+                    ? `<div style="font-size: 2em; margin: 20px 0;">${medals[myRank - 1]} ${myRank}등!</div>`
+                    : `<div style="font-size: 1.8em; margin: 20px 0; color: #6c5ce7;">${myRank}등</div>`;
+
+                const topPlayersHtml = completedPlayers.slice(0, 3).map((player, index) => {
+                    const mins = Math.floor(player.completionTime / 60);
+                    const secs = player.completionTime % 60;
+                    return `<div class="ranking-item">
+                        <span><span class="medal">${medals[index]}</span>${player.name}</span>
+                        <span>${mins}:${secs.toString().padStart(2, '0')}</span>
+                    </div>`;
+                }).join('');
+
+                document.getElementById('topPlayers').innerHTML = `
+                    <h3 style="color: #6c5ce7; font-size: 2em; margin-bottom: 10px;">🎉 게임 종료!</h3>
+                    ${rankInfo}
+                    <h3 style="color: #6c5ce7; margin: 30px 0 15px 0;">🏆 최종 순위</h3>
+                    ${topPlayersHtml}
+                `;
+            } else {
+                document.getElementById('finalScore').textContent = `${myData?.matchedPairs || 0}/${gameCards.length / 2}개`;
+
+                const medals = ['🥇', '🥈', '🥉'];
+                const topPlayersHtml = completedPlayers.slice(0, 3).map((player, index) => {
+                    const mins = Math.floor(player.completionTime / 60);
+                    const secs = player.completionTime % 60;
+                    return `<div class="ranking-item">
+                        <span><span class="medal">${medals[index]}</span>${player.name}</span>
+                        <span>${mins}:${secs.toString().padStart(2, '0')}</span>
+                    </div>`;
+                }).join('');
+
+                document.getElementById('topPlayers').innerHTML = `
+                    <h3 style="color: #6c5ce7; font-size: 2em; margin-bottom: 10px;">🎉 게임 종료!</h3>
+                    <div style="font-size: 1.3em; margin: 20px 0; color: #636e72;">완성한 카드</div>
+                    ${completedPlayers.length > 0 ? '<h3 style="color: #6c5ce7; margin: 30px 0 15px 0;">🏆 완료한 친구들</h3>' + topPlayersHtml : '<p style="color: #636e72; margin-top: 20px;">완료한 친구가 없습니다.</p>'}
+                `;
+            }
 
             document.getElementById('endPopup').style.display = 'flex';
         }
     </script>
 </body>
 </html>
+
 
 

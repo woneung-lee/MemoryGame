@@ -883,13 +883,18 @@
     </div>
 
     <!-- 게임 종료 팝업 -->
-    <div class="popup-overlay" id="endPopup">
-        <div class="popup">
-            <h2>🎉 게임 종료! 🎉</h2>
-            <div class="final-score" id="finalScore">0점</div>
-            <div class="top-players" id="topPlayers"></div>
-        </div>
+  <div class="popup-overlay" id="endPopup">
+    <div class="popup">
+        <h2>🎉 게임 종료! 🎉</h2>
+        <div class="final-score" id="finalScore">0점</div>
+        <div class="top-players" id="topPlayers"></div>
+
+        <!-- ✅ 다시하기 버튼 추가 -->
+        <button class="btn" id="restartBtn" style="margin-top: 30px; width: 100%;">
+            🔁 다시 하기
+        </button>
     </div>
+</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -958,18 +963,21 @@
         }
 
         // 이벤트 리스너 등록
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('teacherRoleBtn')?.addEventListener('click', showTeacherLogin);
-            document.getElementById('studentRoleBtn')?.addEventListener('click', showStudentLogin);
-            document.getElementById('teacherLoginBtn')?.addEventListener('click', loginTeacher);
-            document.getElementById('teacherBackBtn')?.addEventListener('click', backToRoleSelection);
-            document.getElementById('studentJoinBtn')?.addEventListener('click', joinGame);
-            document.getElementById('studentBackBtn')?.addEventListener('click', backToRoleSelection);
-            document.getElementById('addCardBtn')?.addEventListener('click', addCard);
-            document.getElementById('excelFile')?.addEventListener('change', handleExcelUpload);
-            document.getElementById('startGameBtn')?.addEventListener('click', startGame);
-            document.getElementById('deleteRecordsBtn')?.addEventListener('click', deleteRecords);
-        });
+    document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('teacherRoleBtn')?.addEventListener('click', showTeacherLogin);
+    document.getElementById('studentRoleBtn')?.addEventListener('click', showStudentLogin);
+    document.getElementById('teacherLoginBtn')?.addEventListener('click', loginTeacher);
+    document.getElementById('teacherBackBtn')?.addEventListener('click', backToRoleSelection);
+    document.getElementById('studentJoinBtn')?.addEventListener('click', joinGame);
+    document.getElementById('studentBackBtn')?.addEventListener('click', backToRoleSelection);
+    document.getElementById('addCardBtn')?.addEventListener('click', addCard);
+    document.getElementById('excelFile')?.addEventListener('change', handleExcelUpload);
+    document.getElementById('startGameBtn')?.addEventListener('click', startGame);
+    document.getElementById('deleteRecordsBtn')?.addEventListener('click', deleteRecords);
+
+    // ✅ 다시하기 버튼 리스너
+    document.getElementById('restartBtn')?.addEventListener('click', restartGameForStudent);
+});
 
         // 4자리 게임 코드 생성
         function generateGameCode() {
@@ -1692,6 +1700,39 @@ function updateMatchedPairs() {
             });
         }
 
+        function restartGameForStudent() {
+    // 타이머 정지
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+
+    // 학생측 게임 상태 변수 초기화
+    gameCards = [];
+    flippedCards = [];
+    matchedPairs = 0;
+    canFlip = true;
+    combo = 0;
+    completionTime = null;
+
+    // 화면 표시 초기화
+    document.getElementById('scoreDisplay').textContent = '💎 0개 완성';
+    document.getElementById('comboDisplay').classList.remove('active');
+    document.getElementById('comboDisplay').textContent = '🔥 콤보 x0';
+    document.getElementById('cardsGrid').innerHTML = '';
+    document.getElementById('ranking').innerHTML = '';
+    document.getElementById('timer').textContent = '⏱️ 0:00';
+
+    // 팝업 닫기 및 화면 전환
+    document.getElementById('endPopup').style.display = 'none';
+    document.getElementById('gameScreen').style.display = 'none';
+    document.getElementById('studentLogin').style.display = 'block';
+
+    // 입력창 비우기 (다시 닉네임·게임코드 입력하도록)
+    document.getElementById('gameCodeInput').value = '';
+    document.getElementById('nicknameInput').value = '';
+}
+
         function endGameForStudent(data) {
             clearInterval(timerInterval);
             const players = data.players || {};
@@ -1760,6 +1801,7 @@ function updateMatchedPairs() {
     </script>
 </body>
 </html>
+
 
 
 

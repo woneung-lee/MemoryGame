@@ -1323,25 +1323,34 @@
             });
         }
 
-        function initializeGame(data) {
-            const cards = data.cards || [];
-            gameCards = [];
+       function initializeGame(data) {
+    const cards = data.cards || [];
+    gameCards = [];
+    flippedCards = [];
+    matchedPairs = 0;
+    combo = 0;
+    completionTime = null;
+    canFlip = true;
 
-            const gameTitle = data.settings.title || '메모리 게임';
-            document.getElementById('gameTitle').textContent = `🎯 ${gameTitle}`;
+    const gameTitle = data.settings.title || '메모리 게임';
+    document.getElementById('gameTitle').textContent = `🎯 ${gameTitle}`;
 
-            cards.forEach((card, index) => {
-                gameCards.push({ id: `q-${index}`, content: card.question, pairId: index });
-                gameCards.push({ id: `a-${index}`, content: card.answer, pairId: index });
-            });
+    cards.forEach((card, index) => {
+        gameCards.push({ id: `q-${index}`, content: card.question, pairId: index });
+        gameCards.push({ id: `a-${index}`, content: card.answer, pairId: index });
+    });
 
-            gameCards.sort(() => Math.random() - 0.5);
-            renderCards();
+    gameCards.sort(() => Math.random() - 0.5);
+    renderCards();
 
-            gameStartTime = Date.now();
-            startPersonalTimer(data.settings.timeLimit);
-        }
+    // ✅ 처음에 0/총쌍 표시
+    const totalPairs = gameCards.length / 2;
+    document.getElementById('scoreDisplay').textContent =
+        `💎 0/${totalPairs}개 완성`;
 
+    gameStartTime = Date.now();
+    startPersonalTimer(data.settings.timeLimit);
+}
         function renderCards() {
             const grid = document.getElementById('cardsGrid');
             const totalCards = gameCards.length;
@@ -1751,6 +1760,7 @@ function updateMatchedPairs() {
     </script>
 </body>
 </html>
+
 
 
 

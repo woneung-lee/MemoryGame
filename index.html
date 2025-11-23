@@ -1423,21 +1423,31 @@
 
                 updateMatchedPairs();
 
-                if (matchedPairs === gameCards.length / 2) {
-                    canFlip = false;
-                    completionTime = Math.floor((Date.now() - gameStartTime) / 1000);
+              if (matchedPairs === gameCards.length / 2) {
+    // ⛔ 더 이상 시간 가지 않도록 타이머 즉시 정지
+    clearInterval(timerInterval);
+    canFlip = false;
 
-                    const playerRef = database.ref(`memoryGames/${gameId}/players/${playerId}`);
-                    playerRef.update({
-                        completed: true,
-                        completionTime: completionTime,
-                        matchedPairs: matchedPairs
-                    });
+    // 완료 시점 기준으로 기록(초) 저장
+    completionTime = Math.floor((Date.now() - gameStartTime) / 1000);
 
-                    setTimeout(() => {
-                        showCompletionPopup();
-                    }, 1000);
-                }
+    // 상단 점수 영역에 "기록" 표시 (예: 0:45)
+    const minutes = Math.floor(completionTime / 60);
+    const seconds = completionTime % 60;
+    document.getElementById('scoreDisplay').textContent =
+        `🏁 기록: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+    const playerRef = database.ref(`memoryGames/${gameId}/players/${playerId}`);
+    playerRef.update({
+        completed: true,
+        completionTime: completionTime,
+        matchedPairs: matchedPairs
+    });
+
+    setTimeout(() => {
+        showCompletionPopup();
+    }, 1000);
+}
             } else {
                 combo = 0;
                 document.getElementById('comboDisplay').classList.remove('active');
@@ -1459,15 +1469,16 @@
             document.body.appendChild(emoji);
             setTimeout(() => emoji.remove(), 1000);
         }
+function updateMatchedPairs() {
+    const totalPairs = gameCards.length / 2;
+    document.getElementById('scoreDisplay').textContent =
+        `💎 ${matchedPairs}/${totalPairs}개 완성`;
 
-        function updateMatchedPairs() {
-            document.getElementById('scoreDisplay').textContent = `💎 ${matchedPairs}개 완성`;
-
-            const playerRef = database.ref(`memoryGames/${gameId}/players/${playerId}`);
-            playerRef.update({
-                matchedPairs: matchedPairs
-            });
-        }
+    const playerRef = database.ref(`memoryGames/${gameId}/players/${playerId}`);
+    playerRef.update({
+        matchedPairs: matchedPairs
+    });
+}
 
         function showComboAnimation(comboCount) {
             const comboText = document.createElement('div');
@@ -1538,47 +1549,53 @@
             });
         }
 
-        function startPersonalTimer(timeLimit) {
-            const startTime = Date.now();
-            const endTime = startTime + (timeLimit * 1000);
+ function startPersonalTimer(timeLimit) {
+    const startTime = Date.now();
+    const endTime = startTime + (timeLimit * 1000);
 
-            timerInterval = setInterval(() => {
-                const now = Date.now();
-                const elapsed = Math.floor((now - startTime) / 1000);
-                const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
-                const minutes = Math.floor(elapsed / 60);
-                const seconds = elapsed % 60;
-
-                const timerElement = document.getElementById('timer');
-                timerElement.textContent = `⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}`;
-
-                if (remaining <= 10 && remaining > 0) {
-                    timerElement.classList.add('warning');
-                } else {
-                    timerElement.classList.remove('warning');
-                }
-
-                if (remaining === 0) {
-                    clearInterval(timerInterval);
-                    canFlip = false;
-                    timerElement.textContent = '⏱️ 시간 종료!';
-
-                    // 시간 내 완료 못한 경우 제한 시간으로 기록
-                    completionTime = timeLimit;
-                    const playerRef = database.ref(`memoryGames/${gameId}/players/${playerId}`);
-                    playerRef.update({
-                        completed: false,
-                        completionTime: timeLimit,
-                        matchedPairs: matchedPairs,
-                        timeOut: true
-                    });
-
-                    setTimeout(() => {
-                        showTimeOutPopup();
-                    }, 1000);
-                }
-            }, 100);
+    timerInterval = setInterval(() => {
+        // ✅ 이미 모든 카드를 맞춰서 completionTime이 기록된 경우
+        if (completionTime !== null && completionTime !== undefined) {
+            clearInterval(timerInterval);
+            return;
         }
+
+        const now = Date.now();
+        const elapsed = Math.floor((now - startTime) / 1000);
+        const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+
+        const timerElement = document.getElementById('timer');
+        timerElement.textContent = `⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        if (remaining <= 10 && remaining > 0) {
+            timerElement.classList.add('warning');
+        } else {
+            timerElement.classList.remove('warning');
+        }
+
+        if (remaining === 0) {
+            clearInterval(timerInterval);
+            canFlip = false;
+            timerElement.textContent = '⏱️ 시간 종료!';
+
+            // ⏰ 시간 내 완료 못한 경우 제한 시간으로 기록
+            completionTime = timeLimit;
+            const playerRef = database.ref(`memoryGames/${gameId}/players/${playerId}`);
+            playerRef.update({
+                completed: false,
+                completionTime: timeLimit,
+                matchedPairs: matchedPairs,
+                timeOut: true
+            });
+
+            setTimeout(() => {
+                showTimeOutPopup();
+            }, 1000);
+        }
+    }, 100);
+}
 
         function updateRanking(players) {
             if (!players) return;
@@ -1734,6 +1751,7 @@
     </script>
 </body>
 </html>
+
 
 
 

@@ -1038,22 +1038,28 @@
             }
 
             const playerArray = Object.entries(players).map(([id, data]) => ({ id, ...data }));
+            
+            // 완료 시간 기준으로 정렬 (짧을수록 높은 순위)
             playerArray.sort((a, b) => {
-                if (a.completed && !b.completed) return -1;
-                if (!a.completed && b.completed) return 1;
-                if (a.completed && b.completed) return a.completionTime - b.completionTime;
-                return (b.matchedPairs || 0) - (a.matchedPairs || 0);
+                const timeA = a.completionTime !== null && a.completionTime !== undefined ? a.completionTime : 999999;
+                const timeB = b.completionTime !== null && b.completionTime !== undefined ? b.completionTime : 999999;
+                return timeA - timeB;
             });
 
             const medals = ['🥇', '🥈', '🥉'];
             const html = playerArray.map((player, index) => {
                 let statusText = '';
-                if (player.completed) {
+                if (player.completionTime !== null && player.completionTime !== undefined) {
                     const minutes = Math.floor(player.completionTime / 60);
                     const seconds = player.completionTime % 60;
-                    statusText = `${minutes}:${seconds.toString().padStart(2, '0')} ⏱️`;
+                    statusText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    if (player.completed) {
+                        statusText += ' ✅';
+                    } else {
+                        statusText += ' ⏱️';
+                    }
                 } else {
-                    statusText = `${player.matchedPairs || 0}개 완성`;
+                    statusText = '진행 중...';
                 }
                 return `<div class="ranking-item">
                     <span>${index < 3 ? '<span class="medal">' + medals[index] + '</span>' : (index + 1) + '. '}${player.name}</span>
@@ -1492,11 +1498,14 @@
                 const players = data.players || {};
                 const playerArray = Object.entries(players).map(([id, data]) => ({ id, ...data }));
 
-                const completedPlayers = playerArray.filter(p => p.completed);
-                completedPlayers.sort((a, b) => a.completionTime - b.completionTime);
+                // 모든 플레이어를 완료 시간 기준으로 정렬
+                const allPlayers = [...playerArray].sort((a, b) => {
+                    const timeA = a.completionTime !== null && a.completionTime !== undefined ? a.completionTime : 999999;
+                    const timeB = b.completionTime !== null && b.completionTime !== undefined ? b.completionTime : 999999;
+                    return timeA - timeB;
+                });
 
-                const myData = playerArray.find(p => p.name === playerName);
-                const myRank = completedPlayers.findIndex(p => p.name === playerName) + 1;
+                const myRank = allPlayers.findIndex(p => p.name === playerName) + 1;
 
                 const minutes = Math.floor(completionTime / 60);
                 const seconds = completionTime % 60;
@@ -1508,12 +1517,13 @@
                     ? `<div style="font-size: 2em; margin: 20px 0;">${medals[myRank - 1]} ${myRank}등!</div>`
                     : `<div style="font-size: 1.8em; margin: 20px 0; color: #6c5ce7;">${myRank}등</div>`;
 
-                const topPlayersHtml = completedPlayers.slice(0, 3).map((player, index) => {
+                const topPlayersHtml = allPlayers.slice(0, 3).map((player, index) => {
                     const mins = Math.floor(player.completionTime / 60);
                     const secs = player.completionTime % 60;
+                    const statusIcon = player.completed ? '✅' : '⏱️';
                     return `<div class="ranking-item">
                         <span><span class="medal">${medals[index]}</span>${player.name}</span>
-                        <span>${mins}:${secs.toString().padStart(2, '0')}</span>
+                        <span>${mins}:${secs.toString().padStart(2, '0')} ${statusIcon}</span>
                     </div>`;
                 }).join('');
 
@@ -1553,10 +1563,12 @@
                     canFlip = false;
                     timerElement.textContent = '⏱️ 시간 종료!';
 
+                    // 시간 내 완료 못한 경우 제한 시간으로 기록
                     completionTime = timeLimit;
                     const playerRef = database.ref(`memoryGames/${gameId}/players/${playerId}`);
                     playerRef.update({
                         completed: false,
+                        completionTime: timeLimit,
                         matchedPairs: matchedPairs,
                         timeOut: true
                     });
@@ -1572,22 +1584,28 @@
             if (!players) return;
 
             const playerArray = Object.entries(players).map(([id, data]) => ({ id, ...data }));
+            
+            // 완료 시간 기준으로 정렬 (짧을수록 높은 순위)
             playerArray.sort((a, b) => {
-                if (a.completed && !b.completed) return -1;
-                if (!a.completed && b.completed) return 1;
-                if (a.completed && b.completed) return a.completionTime - b.completionTime;
-                return (b.matchedPairs || 0) - (a.matchedPairs || 0);
+                const timeA = a.completionTime !== null && a.completionTime !== undefined ? a.completionTime : 999999;
+                const timeB = b.completionTime !== null && b.completionTime !== undefined ? b.completionTime : 999999;
+                return timeA - timeB;
             });
 
             const medals = ['🥇', '🥈', '🥉'];
             const html = playerArray.map((player, index) => {
                 let statusText = '';
-                if (player.completed) {
+                if (player.completionTime !== null && player.completionTime !== undefined) {
                     const minutes = Math.floor(player.completionTime / 60);
                     const seconds = player.completionTime % 60;
-                    statusText = `${minutes}:${seconds.toString().padStart(2, '0')} ⏱️`;
+                    statusText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    if (player.completed) {
+                        statusText += ' ✅';
+                    } else {
+                        statusText += ' ⏱️';
+                    }
                 } else {
-                    statusText = `${player.matchedPairs || 0}개 완성`;
+                    statusText = '진행 중...';
                 }
 
                 return `<div class="ranking-item" style="${player.name === playerName ? 'border: 3px solid #ffd700;' : ''}">
@@ -1611,22 +1629,37 @@
                 const completedPlayers = playerArray.filter(p => p.completed);
                 completedPlayers.sort((a, b) => a.completionTime - b.completionTime);
 
+                const allPlayers = [...playerArray].sort((a, b) => {
+                    const timeA = a.completionTime !== null && a.completionTime !== undefined ? a.completionTime : 999999;
+                    const timeB = b.completionTime !== null && b.completionTime !== undefined ? b.completionTime : 999999;
+                    return timeA - timeB;
+                });
+
+                const myRank = allPlayers.findIndex(p => p.name === playerName) + 1;
+
                 document.getElementById('finalScore').textContent = `${matchedPairs}/${gameCards.length / 2}개`;
 
                 const medals = ['🥇', '🥈', '🥉'];
-                const topPlayersHtml = completedPlayers.slice(0, 3).map((player, index) => {
+                const topPlayersHtml = allPlayers.slice(0, 3).map((player, index) => {
                     const mins = Math.floor(player.completionTime / 60);
                     const secs = player.completionTime % 60;
+                    const statusIcon = player.completed ? '✅' : '⏱️';
                     return `<div class="ranking-item">
                         <span><span class="medal">${medals[index]}</span>${player.name}</span>
-                        <span>${mins}:${secs.toString().padStart(2, '0')}</span>
+                        <span>${mins}:${secs.toString().padStart(2, '0')} ${statusIcon}</span>
                     </div>`;
                 }).join('');
 
+                const rankInfo = myRank <= 3
+                    ? `<div style="font-size: 2em; margin: 20px 0;">${medals[myRank - 1]} ${myRank}등</div>`
+                    : `<div style="font-size: 1.8em; margin: 20px 0; color: #6c5ce7;">${myRank}등</div>`;
+
                 document.getElementById('topPlayers').innerHTML = `
                     <h3 style="color: #ff7675; font-size: 2em; margin-bottom: 10px;">⏰ 시간 종료!</h3>
+                    ${rankInfo}
                     <div style="font-size: 1.3em; margin: 20px 0; color: #636e72;">완성한 카드</div>
-                    ${completedPlayers.length > 0 ? '<h3 style="color: #6c5ce7; margin: 30px 0 15px 0;">🏆 완료한 친구들</h3>' + topPlayersHtml : '<p style="color: #636e72; margin-top: 20px;">아직 완료한 친구가 없습니다.</p>'}
+                    <h3 style="color: #6c5ce7; margin: 30px 0 15px 0;">🏆 상위 순위</h3>
+                    ${topPlayersHtml}
                 `;
 
                 document.getElementById('endPopup').style.display = 'flex';
@@ -1638,13 +1671,17 @@
             const players = data.players || {};
             const playerArray = Object.entries(players).map(([id, data]) => ({ id, ...data }));
 
-            const completedPlayers = playerArray.filter(p => p.completed);
-            completedPlayers.sort((a, b) => a.completionTime - b.completionTime);
+            // 모든 플레이어를 완료 시간 기준으로 정렬
+            const allPlayers = [...playerArray].sort((a, b) => {
+                const timeA = a.completionTime !== null && a.completionTime !== undefined ? a.completionTime : 999999;
+                const timeB = b.completionTime !== null && b.completionTime !== undefined ? b.completionTime : 999999;
+                return timeA - timeB;
+            });
 
             const myData = playerArray.find(p => p.name === playerName);
 
-            if (myData && myData.completed) {
-                const myRank = completedPlayers.findIndex(p => p.name === playerName) + 1;
+            if (myData && myData.completionTime !== null && myData.completionTime !== undefined) {
+                const myRank = allPlayers.findIndex(p => p.name === playerName) + 1;
                 const minutes = Math.floor(myData.completionTime / 60);
                 const seconds = myData.completionTime % 60;
 
@@ -1655,12 +1692,13 @@
                     ? `<div style="font-size: 2em; margin: 20px 0;">${medals[myRank - 1]} ${myRank}등!</div>`
                     : `<div style="font-size: 1.8em; margin: 20px 0; color: #6c5ce7;">${myRank}등</div>`;
 
-                const topPlayersHtml = completedPlayers.slice(0, 3).map((player, index) => {
+                const topPlayersHtml = allPlayers.slice(0, 3).map((player, index) => {
                     const mins = Math.floor(player.completionTime / 60);
                     const secs = player.completionTime % 60;
+                    const statusIcon = player.completed ? '✅' : '⏱️';
                     return `<div class="ranking-item">
                         <span><span class="medal">${medals[index]}</span>${player.name}</span>
-                        <span>${mins}:${secs.toString().padStart(2, '0')}</span>
+                        <span>${mins}:${secs.toString().padStart(2, '0')} ${statusIcon}</span>
                     </div>`;
                 }).join('');
 
@@ -1671,22 +1709,23 @@
                     ${topPlayersHtml}
                 `;
             } else {
-                document.getElementById('finalScore').textContent = `${myData?.matchedPairs || 0}/${gameCards.length / 2}개`;
+                document.getElementById('finalScore').textContent = `진행 중`;
 
                 const medals = ['🥇', '🥈', '🥉'];
-                const topPlayersHtml = completedPlayers.slice(0, 3).map((player, index) => {
+                const topPlayersHtml = allPlayers.slice(0, 3).map((player, index) => {
                     const mins = Math.floor(player.completionTime / 60);
                     const secs = player.completionTime % 60;
+                    const statusIcon = player.completed ? '✅' : '⏱️';
                     return `<div class="ranking-item">
                         <span><span class="medal">${medals[index]}</span>${player.name}</span>
-                        <span>${mins}:${secs.toString().padStart(2, '0')}</span>
+                        <span>${mins}:${secs.toString().padStart(2, '0')} ${statusIcon}</span>
                     </div>`;
                 }).join('');
 
                 document.getElementById('topPlayers').innerHTML = `
                     <h3 style="color: #6c5ce7; font-size: 2em; margin-bottom: 10px;">🎉 게임 종료!</h3>
-                    <div style="font-size: 1.3em; margin: 20px 0; color: #636e72;">완성한 카드</div>
-                    ${completedPlayers.length > 0 ? '<h3 style="color: #6c5ce7; margin: 30px 0 15px 0;">🏆 완료한 친구들</h3>' + topPlayersHtml : '<p style="color: #636e72; margin-top: 20px;">완료한 친구가 없습니다.</p>'}
+                    <h3 style="color: #6c5ce7; margin: 30px 0 15px 0;">🏆 최종 순위</h3>
+                    ${topPlayersHtml}
                 `;
             }
 
@@ -1695,6 +1734,7 @@
     </script>
 </body>
 </html>
+
 
 
 
